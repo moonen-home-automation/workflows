@@ -1,3 +1,4 @@
+---
 name: Deploy
 
 concurrency:
@@ -14,6 +15,16 @@ on:
       repository:
         default: 'repository'
         description: The name of the stable repository
+        required: false
+        type: string
+      repository_edge:
+        default: 'repository-edge'
+        description: The name of the edge repository
+        required: false
+        type: string
+      repository_beta:
+        default: 'repository-beta'
+        description: The name of the beta repository
         required: false
         type: string
     secrets:
@@ -59,12 +70,16 @@ jobs:
         id: release
         run: |
           sha="${{ github.sha }}"
+          environment="edge"
           version="${sha:0:7}"
-          environment="stable"
           if [[ "${{ github.event_name }}" = "release" ]]; then
             version="${{ github.event.release.tag_name }}"
             version="${version,,}"
             version="${version#v}"
+            environment="stable"
+            if [[ "${{ github.event.release.prerelease }}" = "true" ]]; then
+              environment="beta"
+            fi
           fi
 
           echo "environment=${environment}" >> "$GITHUB_OUTPUT"
@@ -162,6 +177,56 @@ jobs:
             "ghcr.io/${{ github.repository_owner }}/${{ needs.information.outputs.slug }}/${{ matrix.architecture }}:${{ needs.information.outputs.environment }}"
           docker push \
             "ghcr.io/${{ github.repository_owner }}/${{ needs.information.outputs.slug }}/${{ matrix.architecture }}:${{ needs.information.outputs.version }}"
+
+  publish-edge:
+    name: 📢 Publish to edge repository
+    if: needs.information.outputs.environment == 'edge'
+    needs:
+      - information
+      - deploy
+    environment:
+      name: ${{ needs.information.outputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Dispatch repository updater update signal
+        uses: peter-evans/repository-dispatch@v3.0.0
+        with:
+          token: ${{ secrets.DISPATCH_TOKEN }}
+          repository: ${{ github.repository_owner }}/${{ inputs.repository_edge }}
+          event-type: update
+          client-payload: >
+            {
+              "addon": "${{ needs.information.outputs.slug }}",
+              "name": "${{ needs.information.outputs.name }}",
+              "repository": "${{ github.repository }}",
+              "version": "${{ needs.information.outputs.version }}"
+            }
+
+  publish-beta:
+    name: 📢 Publish to beta repository
+    if: |
+      needs.information.outputs.environment == 'beta' ||
+      needs.information.outputs.environment == 'stable'
+    needs:
+      - information
+      - deploy
+    environment:
+      name: ${{ needs.information.outputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Dispatch repository updater update signal
+        uses: peter-evans/repository-dispatch@v3.0.0
+        with:
+          token: ${{ secrets.DISPATCH_TOKEN }}
+          repository: ${{ github.repository_owner }}/${{ inputs.repository_beta }}
+          event-type: update
+          client-payload: >
+            {
+              "addon": "${{ needs.information.outputs.slug }}",
+              "name": "${{ needs.information.outputs.name }}",
+              "repository": "${{ github.repository }}",
+              "version": "${{ github.event.release.tag_name }}"
+            }
 
   publish-stable:
     name: 📢 Publish to stable repository
