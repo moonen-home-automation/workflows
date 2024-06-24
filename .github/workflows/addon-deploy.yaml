@@ -60,11 +60,11 @@ jobs:
         run: |
           sha="${{ github.sha }}"
           version="${sha:0:7}"
+          environment="stable"
           if [[ "${{ github.event_name }}" = "release" ]]; then
             version="${{ github.event.release.tag_name }}"
             version="${version,,}"
             version="${version#v}"
-            environment="stable"
           fi
 
           echo "environment=${environment}" >> "$GITHUB_OUTPUT"
