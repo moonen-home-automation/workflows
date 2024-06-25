@@ -53,20 +53,6 @@
   color: fef2c0
   description: 'Marks a PR or issue that is missing information.'
 
-- name: 'beginner-friendly'
-  color: 0e8a16
-  description: 'Good first issue for people wanting to contribute to the project.'
-- name: 'help-wanted'
-  color: 0e8a16
-  description: 'We need some extra helping hands or expertise in order to resolve this.'
-
-- name: 'hacktoberfest'
-  description: 'Issues/PRs are participating in the Hacktoberfest.'
-  color: fbca04
-- name: 'hacktoberfest-accepted'
-  description: 'Issues/PRs are participating in the Hacktoberfest.'
-  color: fbca04
-
 - name: 'priority-critical'
   color: ee0701
   description: 'This should be dealt with ASAP. Not fixing this issue would be a serious error.'
